@@ -1,0 +1,66 @@
+#!/usr/bin/expect
+
+set default_qq 2471326731
+set default_pass ligwcwdmkcvrecbe
+set default_target 2170412575@qq.com
+# 注释不可和代码同行
+send_user -- "QQ_num(A single enter to use default: $default_qq):\n"
+expect_user -re "(.*)\n"
+send_user "\n"
+
+set qq $expect_out(1,string)
+if {$qq==""} {set qq $default_qq}
+#if右侧的空格不可忽略,其它命令也要注意和大括号的间隔
+send_user -- "Password(A single enter to use default):\n"
+
+#*取消密码回显
+stty -echo
+expect_user -re "(.*)\n"
+send_user "\n"
+set pass $expect_out(1,string) 
+#读取的是正则表达式第一个括号里的部分，排除了换行
+if {$pass==""} {set pass $default_pass}
+stty echo
+
+set timeout 100
+spawn telnet smtp.qq.com 25
+expect {
+    -re "220" {
+        send "helo qq.com\n"
+         exp_continue
+    }
+    -re "250" {
+        send "auth login\n"
+        sleep 0.5
+        exp_continue
+    }
+    -re "334" {
+        send "[exec echo -n $qq@qq.com | base64]\n"
+        #echo -n 去掉换行
+       expect -re "334" {send "[exec echo -n $pass | base64]\n"}
+        exp_continue
+    }
+    -re "235" {
+        send "mail from: <$qq@qq.com>\n"
+        send_user -- "Target email(A single enter to use default: $default_target):\n"
+
+        expect_user -re "(.*)\n"
+        set target expect_out(1,string)
+        if {$target==""} {set target default_target}
+        send "rcpt to: <$target>\n"
+        send "data\n"
+      # 退出此轮识别 防止识别码混淆
+    }
+    timeout {
+         puts "timeout"
+         return
+    }
+    
+
+}
+
+send_user -- "Email Data:\n Example:\nSubject:Test\n\nText\n\n.\n"
+expect_user -re "(.*\n\n\.\n)"
+send "<$expect_out(1,string)>"
+sleep 0.5
+expect -re "OK" {send "quit"}

@@ -1,0 +1,49 @@
+#!/usr/bin/expect
+
+set default_qq 2471326731
+set default_pass ligwcwdmkcvrecbe
+
+
+send_user -- "QQ_num(A single enter to use default: $default_qq):\n"
+expect_user -re "(.*)\n"
+send_user "\n"
+
+set qq $expect_out(1,string)
+if {$qq==""} {set qq $default_qq}
+
+
+send_user -- "Password(A single enter to use default):\n"
+
+#*取消密码回显
+stty -echo
+expect_user -re "(.*)\n"
+send_user "\n"
+set pass $expect_out(1,string) 
+if {$pass==""} {set pass $default_pass}
+stty echo
+
+spawn telnet pop.qq.com 110
+expect -re "OK" {send "user $qq@qq.com\n"}
+
+#不用转换为base64
+expect -re "OK" {send "pass $pass\n"}
+
+# stat	none	处理	请求服务器发回关于邮箱的统计资料，如邮件总数和总字节数
+# uidl	[msg#]	处理	返回邮件的唯一标识符，pop3会话的每个标识符都将是唯一的
+# list	[msg#]	处理	返回邮件数量和每个邮件的大小
+# retr	[msg#]	处理	返回由参数标识的邮件的全部文本
+# dele	[msg#]	处理	服务器将由参数标识的邮件标记为删除，由quit命令执行
+# rset	none	处理	服务器将重置所有标记为删除的邮件，用于撤消dele命令
+# top	[msg#],n	处理	服务器将返回由参数标识的邮件前n行内容，n必须是正整数
+# noop	none	处理	服务器返回一个肯定的响应，不做任何操作。
+# quit	none	更新	退出
+
+#控制权交给用户
+
+
+interact  
+
+
+
+
+
